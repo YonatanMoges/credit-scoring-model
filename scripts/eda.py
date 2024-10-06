@@ -52,10 +52,15 @@ class EDA:
         plt.show()
         
     def missing_values(self):
-        """Prints missing value counts for each column."""
+        """Prints missing value counts for each column or indicates if no missing values are found."""
         missing = self.data.isnull().sum()
         missing = missing[missing > 0]
-        print("Missing Values:\n", missing)
+        
+        if missing.empty:
+            print("No missing values found in the dataset.")
+        else:
+            print("Missing Values:\n", missing)
+
         
     def outlier_detection(self):
         """Plots box plots for each numerical feature to identify outliers."""
