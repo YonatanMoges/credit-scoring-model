@@ -28,14 +28,20 @@ class EDA:
             plt.title(f'Distribution of {col}')
             plt.show()
 
-    def categorical_distribution(self):
-        """Plots count plots for categorical features."""
+    def categorical_distribution(self, unique_threshold=20):
+        """Plots count plots for categorical features with low cardinality."""
         categorical_cols = self.data.select_dtypes(include=['object', 'category']).columns
         for col in categorical_cols:
+            # Skip columns with high cardinality
+            if self.data[col].nunique() > unique_threshold:
+                print(f"Skipping column {col} due to high cardinality ({self.data[col].nunique()} unique values).")
+                continue
+
             plt.figure(figsize=(10, 4))
             sns.countplot(y=self.data[col], order=self.data[col].value_counts().index)
             plt.title(f'Count Plot of {col}')
             plt.show()
+
             
     def correlation_analysis(self):
         """Generates a correlation heatmap for numerical features."""
