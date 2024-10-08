@@ -58,13 +58,21 @@ class FeatureEngineering:
 
     # Normalize/Standardize Numerical Features
     def scale_features(self, method="normalize"):
-        num_cols = self.df.select_dtypes(include=[np.number]).columns
+        # Define columns to exclude from scaling (IDs and any other non-numeric fields)
+        id_columns = ['TransactionId', 'BatchId', 'AccountId', 'SubscriptionId', 'CustomerId']
+        
+        # Get numerical columns, excluding IDs
+        num_cols = self.df.select_dtypes(include=[np.number]).columns.difference(id_columns)
+        
         if method == "normalize":
             scaler = MinMaxScaler()
         elif method == "standardize":
             scaler = StandardScaler()
+        
+        # Apply scaling to the selected numerical columns
         self.df[num_cols] = scaler.fit_transform(self.df[num_cols])
         return self.df
+
 
     # Weight of Evidence (WOE) and Information Value (IV)
     def woe_transformation(self, target_col):
@@ -173,8 +181,8 @@ class DefaultEstimator:
     # Step 5: Build Scorecard
     def build_scorecard(self):
         # Calculate the scorecard points for each binned feature
-        self.rfms_df['Score'] = (self.rfms_df['WOE_Recency'] +
-                                 self.rfms_df['WOE_Frequency'] +
-                                 self.rfms_df['WOE_Monetary'] +
-                                 self.rfms_df['WOE_Seasonality']) * 20  # Scale for interpretability
+        self.rfms_df['Score'] = (self.rfms_df['Recency'] +
+                                 self.rfms_df['Frequency'] +
+                                 self.rfms_df['Monetary'] +
+                                 self.rfms_df['Seasonality']) * 20  # Scale for interpretability
         return self.rfms_df[['CustomerId', 'Score']]
