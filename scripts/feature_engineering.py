@@ -141,16 +141,34 @@ class DefaultEstimator:
         print(f"Plot saved as {save_path}")
 
     # Step 4: Apply WoE Binning
+    # Manually perform WoE binning
     def woe_binning(self, target_col='Default_Label'):
-        woe_transformer = WOE()
-        # Map 'Good' and 'Bad' to binary values for WOE processing
+        # Ensure binary target for WoE
         self.rfms_df[target_col] = self.rfms_df[target_col].map({'Good': 0, 'Bad': 1})
-        self.rfms_df = woe_transformer.fit_transform(self.rfms_df, self.rfms_df[target_col])
 
-        # Display IV values for each feature after WOE binning (helpful for feature selection)
-        iv_values = woe_transformer.iv
-        print("Information Values (IV) for features:", iv_values)
-        return self.rfms_df, iv_values
+        # Dictionary to store Information Values (IV)
+        iv_dict = {}
+
+        # Perform binning and WoE calculation for each relevant feature
+        for col in ['Recency', 'Frequency', 'Monetary', 'Seasonality']:
+            # Create bins and calculate counts
+            binned_col = pd.qcut(self.rfms_df[col], q=10, duplicates='drop')  # adjust bins if necessary
+            grouped = self.rfms_df.groupby(binned_col)[target_col].agg(['count', 'sum'])
+            
+            # Calculate WoE and IV
+            grouped['non_event'] = grouped['count'] - grouped['sum']
+            grouped['dist_event'] = grouped['sum'] / grouped['sum'].sum()
+            grouped['dist_non_event'] = grouped['non_event'] / grouped['non_event'].sum()
+            grouped['WoE'] = np.log(grouped['dist_non_event'] / grouped['dist_event']).replace([np.inf, -np.inf], 0)
+            grouped['IV'] = (grouped['dist_non_event'] - grouped['dist_event']) * grouped['WoE']
+            
+            # Store IV and add WoE column to dataframe
+            iv_dict[col] = grouped['IV'].sum()
+            self.rfms_df[f'WoE_{col}'] = binned_col.map(grouped['WoE'])
+
+        # Print IV values for inspection
+        print("Information Values (IV) for features:", iv_dict)
+        return self.rfms_df, iv_dict
 
     # Step 5: Build Scorecard
     def build_scorecard(self):
