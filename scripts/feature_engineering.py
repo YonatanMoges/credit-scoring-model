@@ -127,14 +127,18 @@ class DefaultEstimator:
         return self.rfms_df
 
     # Step 3: Visualize RFMS to Define Boundary
-    def plot_rfms_space(self):
+    # Modify the plot_rfms_space function in DefaultEstimator class
+    def plot_rfms_space(self, save_path="../data/rfms_space.png"):
         plt.figure(figsize=(12, 8))
         sns.scatterplot(data=self.rfms_df, x='Frequency', y='Monetary', hue='Default_Label', palette=['red', 'green'])
         plt.title("RFMS Space - Frequency vs. Monetary")
         plt.xlabel("Frequency of Transactions")
         plt.ylabel("Average Transaction Amount (Monetary)")
         plt.legend(title="Default Label")
-        plt.show()
+        
+        # Save plot as an image file
+        plt.savefig(save_path)
+        print(f"Plot saved as {save_path}")
 
     # Step 4: Apply WoE Binning
     def woe_binning(self, target_col='Default_Label'):
