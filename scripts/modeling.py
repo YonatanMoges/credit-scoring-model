@@ -1,13 +1,10 @@
 # scripts/modeling.py
-
-import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split, GridSearchCV, RandomizedSearchCV
-from sklearn.linear_model import LogisticRegression
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
-from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.linear_model import LinearRegression
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
 class ModelTrainer:
     def __init__(self, data, target_col):
@@ -24,10 +21,10 @@ class ModelTrainer:
         )
 
     def choose_models(self):
-        self.models['Logistic Regression'] = LogisticRegression(max_iter=1000)
-        self.models['Decision Tree'] = DecisionTreeClassifier()
-        self.models['Random Forest'] = RandomForestClassifier()
-        self.models['Gradient Boosting'] = GradientBoostingClassifier()
+        self.models['Linear Regression'] = LinearRegression()
+        self.models['Decision Tree'] = DecisionTreeRegressor()
+        self.models['Random Forest'] = RandomForestRegressor()
+        self.models['Gradient Boosting'] = GradientBoostingRegressor()
 
     def train_models(self):
         for name, model in self.models.items():
@@ -36,10 +33,7 @@ class ModelTrainer:
 
     def hyperparameter_tuning(self):
         param_grid = {
-            'Logistic Regression': {
-                'C': [0.01, 0.1, 1, 10],
-                'solver': ['liblinear', 'saga']
-            },
+            'Linear Regression': {},  # No hyperparameters to tune for Linear Regression
             'Decision Tree': {
                 'max_depth': [None, 5, 10, 15],
                 'min_samples_split': [2, 5, 10]
@@ -58,7 +52,7 @@ class ModelTrainer:
 
         for name, model in self.models.items():
             if name in param_grid:
-                grid_search = GridSearchCV(model, param_grid[name], scoring='accuracy', cv=5)
+                grid_search = GridSearchCV(model, param_grid[name], scoring='r2', cv=5)
                 grid_search.fit(self.X_train, self.y_train)
                 best_model = grid_search.best_estimator_
                 self.models[name] = best_model
@@ -67,17 +61,15 @@ class ModelTrainer:
     def evaluate_models(self):
         evaluation_metrics = {}
         for name, preds in self.results.items():
-            accuracy = accuracy_score(self.y_test, preds)
-            precision = precision_score(self.y_test, preds)
-            recall = recall_score(self.y_test, preds)
-            f1 = f1_score(self.y_test, preds)
-            roc_auc = roc_auc_score(self.y_test, preds)
+            mae = mean_absolute_error(self.y_test, preds)
+            mse = mean_squared_error(self.y_test, preds)
+            rmse = np.sqrt(mse)
+            r2 = r2_score(self.y_test, preds)
 
             evaluation_metrics[name] = {
-                'Accuracy': accuracy,
-                'Precision': precision,
-                'Recall': recall,
-                'F1 Score': f1,
-                'ROC AUC': roc_auc
+                'MAE': mae,
+                'MSE': mse,
+                'RMSE': rmse,
+                'R²': r2
             }
         return evaluation_metrics
