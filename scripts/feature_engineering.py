@@ -5,6 +5,9 @@ import numpy as np
 from sklearn.preprocessing import OneHotEncoder, LabelEncoder, StandardScaler, MinMaxScaler
 from xverse.transformer import WOE
 from datetime import datetime
+import matplotlib.pyplot as plt
+import seaborn as sns
+
 
 class FeatureEngineering:
     def __init__(self, df):
@@ -68,3 +71,88 @@ class FeatureEngineering:
         woe_transformer = WOE()
         self.df = woe_transformer.fit_transform(self.df, self.df[target_col])
         return self.df
+
+
+class DefaultEstimator:
+    def __init__(self, df):
+        self.df = df
+
+    # Step 1: Compute RFMS Features
+    def compute_rfms(self):
+        # Convert TransactionStartTime to datetime and ensure it is in UTC
+        self.df['TransactionStartTime'] = pd.to_datetime(self.df['TransactionStartTime'])
+        if self.df['TransactionStartTime'].dt.tz is None:
+            self.df['TransactionStartTime'] = self.df['TransactionStartTime'].dt.tz_localize('UTC')
+        else:
+            self.df['TransactionStartTime'] = self.df['TransactionStartTime'].dt.tz_convert('UTC')
+        
+        # Recency: Days since the most recent transaction
+        recency_df = self.df.groupby('CustomerId')['TransactionStartTime'].max().reset_index()
+        # Make datetime.now() timezone-aware and convert to UTC
+        now_utc = datetime.now().astimezone().astimezone(recency_df['TransactionStartTime'].dt.tz)
+        recency_df['Recency'] = (now_utc - recency_df['TransactionStartTime']).dt.days
+
+        # Frequency: Count of transactions per customer
+        frequency_df = self.df.groupby('CustomerId').size().reset_index(name='Frequency')
+
+        # Monetary: Average transaction amount per customer
+        monetary_df = self.df.groupby('CustomerId')['Amount'].mean().reset_index(name='Monetary')
+
+        # Seasonality: Standard deviation of transaction amount
+        seasonality_df = self.df.groupby('CustomerId')['Amount'].std().fillna(0).reset_index(name='Seasonality')
+
+        # Merge RFMS features
+        rfms_df = recency_df[['CustomerId', 'Recency']].merge(frequency_df, on='CustomerId')
+        rfms_df = rfms_df.merge(monetary_df, on='CustomerId')
+        rfms_df = rfms_df.merge(seasonality_df, on='CustomerId')
+        self.rfms_df = rfms_df
+        return rfms_df
+
+
+    
+
+    # Step 2: Calculate RFMS Score and Assign Good/Bad Labels
+    def calculate_rfms_score(self):
+        # Example RFMS scoring, this may need tuning
+        self.rfms_df['RFMS_Score'] = (
+            self.rfms_df['Recency'].rank(ascending=False) +
+            self.rfms_df['Frequency'].rank() +
+            self.rfms_df['Monetary'].rank() +
+            self.rfms_df['Seasonality'].rank()
+        )
+
+        # Establish threshold visually or with a statistical method
+        threshold = self.rfms_df['RFMS_Score'].median()  # Example threshold
+        self.rfms_df['Default_Label'] = np.where(self.rfms_df['RFMS_Score'] > threshold, 'Good', 'Bad')
+        return self.rfms_df
+
+    # Step 3: Visualize RFMS to Define Boundary
+    def plot_rfms_space(self):
+        plt.figure(figsize=(12, 8))
+        sns.scatterplot(data=self.rfms_df, x='Frequency', y='Monetary', hue='Default_Label', palette=['red', 'green'])
+        plt.title("RFMS Space - Frequency vs. Monetary")
+        plt.xlabel("Frequency of Transactions")
+        plt.ylabel("Average Transaction Amount (Monetary)")
+        plt.legend(title="Default Label")
+        plt.show()
+
+    # Step 4: Apply WoE Binning
+    def woe_binning(self, target_col='Default_Label'):
+        woe_transformer = WOE()
+        # Map 'Good' and 'Bad' to binary values for WOE processing
+        self.rfms_df[target_col] = self.rfms_df[target_col].map({'Good': 0, 'Bad': 1})
+        self.rfms_df = woe_transformer.fit_transform(self.rfms_df, self.rfms_df[target_col])
+
+        # Display IV values for each feature after WOE binning (helpful for feature selection)
+        iv_values = woe_transformer.iv
+        print("Information Values (IV) for features:", iv_values)
+        return self.rfms_df, iv_values
+
+    # Step 5: Build Scorecard
+    def build_scorecard(self):
+        # Calculate the scorecard points for each binned feature
+        self.rfms_df['Score'] = (self.rfms_df['WOE_Recency'] +
+                                 self.rfms_df['WOE_Frequency'] +
+                                 self.rfms_df['WOE_Monetary'] +
+                                 self.rfms_df['WOE_Seasonality']) * 20  # Scale for interpretability
+        return self.rfms_df[['CustomerId', 'Score']]
