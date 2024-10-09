@@ -43,20 +43,3 @@ def predict():
 if __name__ == '__main__':
     app.run(debug=True)
 
-import requests
-
-url = 'http://127.0.0.1:5000/predict'
-data = {
-    "Recency": 2148,
-    "Frequency": 1,
-    "Monetary": 0.09099264705882354,
-    "Seasonality": 0.0,
-    "WoE_Recency": -2.336457635528553,
-    "WoE_Frequency": -2.8600629859409428,
-    "WoE_Monetary": -3.4128528088059653,
-    "WoE_Seasonality": -3.9582216570009114,
-    "RFMS_Score": 997.5
-}
-
-response = requests.post(url, json=data)
-print(response.json())
