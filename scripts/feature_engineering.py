@@ -45,7 +45,7 @@ class FeatureEngineering:
             for col in self.df.select_dtypes(include='object').columns:
                 self.df[col] = le.fit_transform(self.df[col])
         return self.df
-
+    
     # Handle Missing Values
     def handle_missing_values(self, strategy="mean"):
         if strategy == "mean":
