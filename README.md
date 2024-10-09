@@ -139,9 +139,7 @@ pip install -r requirements.txt
 │   ├── feature_engineering.py
 │   └── modeling.py
 ├── src
-│   └── # Add any custom code modules or packages
 ├── tests
-│   └── # Add unit tests and integration tests
 ├── models
 │   └── # Saved machine learning models (generated after training)
 ├── .gitignore
