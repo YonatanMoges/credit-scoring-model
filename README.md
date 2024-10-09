@@ -48,11 +48,11 @@ Scripts: `scripts/eda.py`, Notebook: `notebooks/eda.ipynb`
 - **Extract Features**:
   - Time-based features such as Transaction Hour, Day, Month, and Year were extracted.
 - **Encode Categorical Variables**:
-  - Used One-Hot Encoding and Label Encoding for categorical variables.
+  - Used Label Encoding for categorical variables.
 - **Handle Missing Values**:
-  - Missing values were handled by imputation using techniques like mean or median imputation.
+  - Missing values were handled by mean imputation.
 - **Normalize/Standardize Numerical Features**:
-  - Numerical features were standardized or normalized to ensure all features are on the same scale.
+  - Numerical features were normalized to ensure all features are on the same scale.
 - **WoE Binning**:
   - Applied Weight of Evidence (WoE) binning for credit scoring.
 
